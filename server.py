@@ -17,12 +17,9 @@ os.makedirs(IMAGE_DIR, exist_ok=True)
 
 
 def save_request(data):
-    """Save the complete HTTP request as a binary file."""
-
     timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     filename = os.path.join(REQUEST_DIR, timestamp + ".bin")
 
-    # Avoid overwriting if two requests arrive during the same second
     counter = 1
     original_filename = filename
 
@@ -42,8 +39,6 @@ def save_request(data):
 
 
 def find_header(data, header_name):
-    """Find a header in the raw HTTP request."""
-
     header_end = data.find(b"\r\n\r\n")
 
     if header_end == -1:
@@ -59,8 +54,6 @@ def find_header(data, header_name):
 
 
 def extract_image(data):
-    """Extract an image from a multipart/form-data request."""
-
     header_end = data.find(b"\r\n\r\n")
 
     if header_end == -1:
@@ -78,12 +71,11 @@ def extract_image(data):
 
     print(f"[*] Content-Type: {content_type}")
 
-    # We only handle multipart/form-data
     if "multipart/form-data" not in content_type.lower():
         print("[-] Request is not multipart/form-data.")
         return None
 
-    # Extract boundary
+    # boundary
     boundary = None
 
     for part in content_type.split(";"):
@@ -103,7 +95,7 @@ def extract_image(data):
 
     print(f"[*] Boundary: {boundary}")
 
-    # email.parser gives us a convenient multipart parser
+    # parser
     fake_headers = (
         b"Content-Type: " + content_type.encode("iso-8859-1") + b"\r\n"
         b"\r\n"
@@ -139,7 +131,6 @@ def extract_image(data):
         if not image_data:
             continue
 
-        # Keep only the filename, not any directory supplied by the client
         filename = os.path.basename(filename)
 
         output_path = os.path.join(IMAGE_DIR, filename)
@@ -157,8 +148,6 @@ def extract_image(data):
 
 
 def send_response(client_socket):
-    """Send a simple HTTP response to curl."""
-
     response_body = b'{"message":"Request received successfully"}'
 
     response = (
@@ -174,11 +163,8 @@ def send_response(client_socket):
 
 
 def receive_request(client_socket):
-    """Receive the complete HTTP request."""
-
     data = b""
 
-    # First receive until we have the HTTP headers
     while b"\r\n\r\n" not in data:
         chunk = client_socket.recv(4096)
 
@@ -204,7 +190,6 @@ def receive_request(client_socket):
             content_length = int(line.split(":", 1)[1].strip())
             break
 
-    # Receive the rest of the body
     while len(body) < content_length:
         chunk = client_socket.recv(4096)
 
@@ -249,10 +234,8 @@ def main():
 
             print(f"[*] Received {len(request)} bytes")
 
-            # 실습 1
             save_request(request)
 
-            # 실습 2
             extract_image(request)
 
             send_response(client_socket)
